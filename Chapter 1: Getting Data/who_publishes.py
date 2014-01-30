@@ -100,7 +100,7 @@ def get_dataset_meta(link):
     meta_primary = BeautifulSoup(meta)
     email = unicode(meta_primary.find('aside', class_='secondary').dl.dd.string)
     print(link['title'], email)
-    return {'title': link['title'], 'email': email}
+    return {'title': link['title'], 'link': link['link'], 'email': email}
 
 
 def get_publisher_dataset(publisher):
@@ -108,7 +108,7 @@ def get_publisher_dataset(publisher):
     publisher_resp = grab_from_reg(publisher['link'])
     links = get_dataset_links(publisher_resp)
     info = _py_map(get_dataset_meta, links)
-    return {'publisher': publisher['link'], 'datasets': info}
+    return {'publisher': publisher, 'datasets': info}
 
 
 @filecache
@@ -143,4 +143,7 @@ if __name__ == '__main__':
         pool = Pool(n)
         map = pool.map  # global redefine
 
-    scrape(map)
+    datasets = scrape(map)
+    import json
+    with open('results.json', 'w') as resultsfile:
+        json.dump(datasets, resultsfile, indent=2)
