@@ -2046,6 +2046,13 @@
   }, 
   {
     "publisher": {
+      "link": "/publisher/gecfundmanagerpwc", 
+      "name": "Girls\u2019 Education Challenge \u2013 Fund Manager PwC"
+    }, 
+    "datasets": []
+  }, 
+  {
+    "publisher": {
       "link": "/publisher/gl", 
       "name": "Gender Links"
     }, 

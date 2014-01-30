@@ -31,6 +31,7 @@
 import os
 import pickle
 from functools import wraps
+from collections import defaultdict
 from base64 import urlsafe_b64encode as encode
 import logging as log
 import requests
@@ -92,6 +93,17 @@ def get_dataset_links(publisher_resp):
             title = unicode(row.h3.a.string)
             link = row.find_all('p')[-1].a.get('href')
             yield {'title': title, 'link': link}
+    paged = publisher_primary.find(class_='pagination')
+    if paged:
+        this_page = paged.find('li', class_='active')
+        next_page = paged.next_sibling
+        if next_page.name:
+            print('pageing....')
+            print('hello', next_page)
+            href = next_page.a.attr('href')
+            content = grab_from_reg(href)
+            for link in get_dataset_links(content):
+                yield link
 
 
 @filecache
@@ -118,6 +130,35 @@ def scrape(map):
     print('getting datasets...')
     datasets = map(get_publisher_dataset, publishers)
     return datasets
+
+
+def report(results):
+    print('\n\nREPORT')
+
+    email_pivot = defaultdict(lambda: defaultdict(int))
+    for p in results:
+        for d in p['datasets']:
+            email_pivot[d['email']][p['publisher']['name']] += 1
+    print('\nSome numbers:')
+    num = {'publishers': len(results),
+           'emails': len(email_pivot),
+           'datasets': sum(len(p['datasets']) for p in results)}
+    print(' * {publishers} publishers\n * {emails} email addresses\n * {datasets} datasets'.format(**num))
+
+    print('\nDatasets with no provided email address:')
+    print('\n'.join((u' * {} datasets from {}'.format(n, e) for e, n in email_pivot['Author not given'].items())))
+
+    print('\nPublishers providing multiple email addresses:')
+    multi_pubs = []
+    for p in results:
+        emails = set(d['email'] for d in p['datasets'])
+        if len(emails) > 1:
+            multi_pubs.append({'publisher': p['publisher']['name'], 'addresses': emails})
+    print('\n'.join('{}:\n    {}'.format(' * ' + m['publisher'], '\n    '.join('{} datasets from {}'.format(email_pivot[e].values()[0], e) for e in m['addresses'])) for m in multi_pubs))
+
+    print('\nSketchy email addresses:')
+    sketchy_signals = ('gmail', 'hotmail', 'yahoo', 'rocketmail', 'ymail', ',')
+    print('\n'.join(' * {1}\n    {0}'.format(e, email_pivot[e].keys()[0]) for e in email_pivot if any(d in e for d in sketchy_signals)))
 
 
 if __name__ == '__main__':
@@ -147,3 +188,5 @@ if __name__ == '__main__':
     import json
     with open('results.json', 'w') as resultsfile:
         json.dump(datasets, resultsfile, indent=2)
+
+    report(datasets)
